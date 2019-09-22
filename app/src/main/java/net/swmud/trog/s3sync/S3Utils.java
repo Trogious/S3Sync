@@ -53,7 +53,7 @@ public class S3Utils {
 
     public static void initialize(AWSConfiguration awsConfig, List<String> keys) throws JSONException {
         JSONObject service = awsConfig.optJsonObject("S3TransferUtility");
-        bucketName = service.getString("Bucket");
+        bucketName = MySettings.getInstance().bucketName;
         regionName = service.getString("Region");
         client = getClient();
         accessKey = keys.get(0);
@@ -62,22 +62,23 @@ public class S3Utils {
 
     public static List<String> listObjects() {
         final List<String> objects = new ArrayList<>();
-        try {
-            Thread t = new Thread(() -> {
-                List<S3ObjectSummary> summaries = client.listObjects(bucketName).getObjectSummaries();
-                summaries.sort((o1, o2) -> o1.getLastModified().compareTo(o2.getLastModified()));
-                summaries.forEach(s3ObjectSummary -> objects.add(s3ObjectSummary.getKey()));
-            });
-            t.start();
+        if (bucketName != null) {
             try {
-                t.join();
-            } catch (InterruptedException e) {
+                Thread t = new Thread(() -> {
+                    List<S3ObjectSummary> summaries = client.listObjects(bucketName).getObjectSummaries();
+                    summaries.sort((o1, o2) -> o1.getLastModified().compareTo(o2.getLastModified()));
+                    summaries.forEach(s3ObjectSummary -> objects.add(s3ObjectSummary.getKey()));
+                });
+                t.start();
+                try {
+                    t.join();
+                } catch (InterruptedException e) {
+                    Log.d(TAG, Log.getStackTraceString(e));
+                }
+            } catch (Exception e) {
                 Log.d(TAG, Log.getStackTraceString(e));
             }
-        } catch (Exception e) {
-            Log.d(TAG, Log.getStackTraceString(e));
         }
-
         return objects;
     }
 

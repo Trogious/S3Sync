@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
         recyclerAdapter = new RecyclerAdapter(this::convertMediaUriToPath);
         recyclerView.setAdapter(recyclerAdapter);
-        recyclerAdapter.setDataset(new Uri[] {new Uri.Builder().appendPath("gamma").build(), new Uri.Builder().appendPath("omega").build()});
+        recyclerAdapter.setDataset(new Uri[] {new Uri.Builder().appendPath("dummy1").build(), new Uri.Builder().appendPath("dummy2").build()});
         recyclerAdapter.notifyDataSetChanged();
 
         getApplicationContext().startService(transferService = new Intent(getApplicationContext(), TransferService.class));
@@ -102,6 +102,7 @@ public class MainActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     folderSpinner.setOnItemSelectedListener(null);
                     foldersAdapter.clear();
+                    foldersAdapter.add("/");
                     foldersAdapter.addAll(folders);
                     foldersAdapter.notifyDataSetChanged();
 
@@ -148,7 +149,7 @@ public class MainActivity extends AppCompatActivity {
 
         folderSpinner = findViewById(R.id.spinner2);
         final List<String> list = new ArrayList<>();
-        list.add("pub/");
+        list.add("/");
         foldersAdapter = new ArrayAdapter<>(self,
                 android.R.layout.simple_spinner_item, list);
         foldersAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);

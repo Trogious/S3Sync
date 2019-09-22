@@ -53,7 +53,6 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
         // - replace the contents of the view with that element
         holder.textView.setText(resolver.resolve(mDataset[position]));
         holder.progressBar.setProgress(75);
-
     }
 
     // Return the size of your dataset (invoked by the layout manager)

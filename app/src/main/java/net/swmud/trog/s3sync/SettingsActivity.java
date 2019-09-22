@@ -13,6 +13,7 @@ public class SettingsActivity extends AppCompatActivity {
     private final SettingsActivity self = this;
     private TextView accessKeyView;
     private TextView secretKeyView;
+    private TextView bucketNameView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -21,10 +22,13 @@ public class SettingsActivity extends AppCompatActivity {
 
         accessKeyView = findViewById(R.id.editAccessKey);
         secretKeyView = findViewById(R.id.editSecretKey);
+        bucketNameView = findViewById(R.id.editBucketName);
 
         final Button saveButton = findViewById(R.id.buttonSave);
         saveButton.setOnClickListener(v -> {
-            MySettings.getInstance().updateAccessKeys(accessKeyView.getText().toString(), secretKeyView.getText().toString());
+            MySettings s = MySettings.getInstance();
+            s.updateAccessKeys(accessKeyView.getText().toString(), secretKeyView.getText().toString());
+            s.updateBucketName(bucketNameView.getText().toString());
         });
     }
 
@@ -34,5 +38,6 @@ public class SettingsActivity extends AppCompatActivity {
         MySettings s = MySettings.getInstance();
         accessKeyView.setText(s.accessKey);
         secretKeyView.setText(s.secretKey);
+        bucketNameView.setText(s.bucketName);
     }
 }

@@ -30,10 +30,12 @@ public class MySettings {
     public static final String ACCESS_KEY_FIELD = "access_key";
     public static final String SECRET_KEY_FIELD = "secret_key";
     public static final String LAST_PREFIX_KEY_FIELD = "last_prefix";
+    public static final String BUCKET_NAME_FIELD = "bucket_name";
 
     public String accessKey;
     public String secretKey;
     public String lastSelectecPrefix;
+    public String bucketName;
 
     private String settingsDir;
     private String encryptionKey;
@@ -71,6 +73,7 @@ public class MySettings {
             json.put(ACCESS_KEY_FIELD, accessKey);
             json.put(SECRET_KEY_FIELD, encrypted);
             json.put(LAST_PREFIX_KEY_FIELD, lastSelectecPrefix);
+            json.put(BUCKET_NAME_FIELD, bucketName);
         } catch (JSONException e) {
             Log.d(TAG, Log.getStackTraceString(e));
         }
@@ -91,6 +94,7 @@ public class MySettings {
             accessKey = json.getString(ACCESS_KEY_FIELD);
             secretKey = Crypto.decrypt(encryptionKey, json.getString(SECRET_KEY_FIELD));
             lastSelectecPrefix = json.optString(LAST_PREFIX_KEY_FIELD, null);
+            bucketName = json.optString(BUCKET_NAME_FIELD, null);
         } catch (IOException | JSONException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             Log.d(TAG, Log.getStackTraceString(e));
         }
@@ -111,6 +115,11 @@ public class MySettings {
 
     public void updateLastSelectecPrefix(String lastSelectecPrefix) {
         this.lastSelectecPrefix = lastSelectecPrefix;
+        save();
+    }
+
+    public void updateBucketName(String bucketName) {
+        this.bucketName = bucketName;
         save();
     }
 }

@@ -29,6 +29,9 @@ public class SettingsActivity extends AppCompatActivity {
             MySettings s = MySettings.getInstance();
             s.updateAccessKeys(accessKeyView.getText().toString(), secretKeyView.getText().toString());
             s.updateBucketName(bucketNameView.getText().toString());
+            S3Utils.setAccessKey(s.accessKey);
+            S3Utils.setSecretKey(s.secretKey);
+            S3Utils.setBucketName(s.bucketName);
         });
     }
 

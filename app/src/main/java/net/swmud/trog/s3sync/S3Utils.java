@@ -37,6 +37,18 @@ public class S3Utils {
     private static String accessKey;
     private static String secretKey;
 
+    public static void setBucketName(String bucketName) {
+        S3Utils.bucketName = bucketName;
+    }
+
+    public static void setAccessKey(String accessKey) {
+        S3Utils.accessKey = accessKey;
+    }
+
+    public static void setSecretKey(String secretKey) {
+        S3Utils.secretKey = secretKey;
+    }
+
     public static AmazonS3Client getClient() {
         return new AmazonS3Client(new AWSCredentials() {
             @Override
@@ -137,11 +149,6 @@ public class S3Utils {
         metadata.setContentLength(0);
         PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName,fullPathName + "/",
                 new ByteArrayInputStream(new byte[0]), metadata);
-        try {
-            client.putObject(putObjectRequest);
-        } catch (Exception e) {
-            Log.d(TAG, "Cannot create prefix: " + fullPathName, e);
-            throw e;
-        }
+        client.putObject(putObjectRequest);
     }
 }

@@ -66,7 +66,7 @@ public class MainActivity extends AppCompatActivity {
         fab.setOnClickListener(view -> {
             if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE)
                     == PackageManager.PERMISSION_GRANTED) {
-                Log.i(TAG, "READ_EXTERNAL_STORAGE already granted");
+                Log.d(TAG, "READ_EXTERNAL_STORAGE already granted");
                 Snackbar.make(view, "Uploading", Snackbar.LENGTH_LONG).show();
                 String prefix = (String)folderSpinner.getSelectedItem();
                 uploadAll(prefix);
@@ -154,27 +154,21 @@ public class MainActivity extends AppCompatActivity {
         folderSpinner = findViewById(R.id.spinner2);
         final List<String> list = new ArrayList<>();
         list.add("/");
-        foldersAdapter = new ArrayAdapter<>(self,
-                android.R.layout.simple_spinner_item, list);
+        foldersAdapter = new ArrayAdapter<>(self, android.R.layout.simple_spinner_item, list);
         foldersAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         folderSpinner.setAdapter(foldersAdapter);
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode,
-                                           String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         switch (requestCode) {
             case 1: {
                 // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.i(TAG, "READ_EXTERNAL_STORAGE granted");
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
+                    Log.d(TAG, "READ_EXTERNAL_STORAGE granted");
                 } else {
-                    Log.i(TAG, "READ_EXTERNAL_STORAGE rejected !!!");
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
+                    Log.d(TAG, "READ_EXTERNAL_STORAGE rejected !!!");
                 }
                 return;
             }
@@ -192,6 +186,41 @@ public class MainActivity extends AppCompatActivity {
             foldersAdapter.notifyDataSetChanged();
         }
     }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
+    }
+
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        int id = item.getItemId();
+        if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, SettingsActivity.class);
+            startActivity(intent);
+            return true;
+        } else if (id == R.id.action_create_prefix) {
+            Intent intent = new Intent(this, CreatePrefixActivity.class);
+            startActivityForResult(intent, 1);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onBackPressed() {
+        finish();
+    }
+
+    @Override
+    protected void onDestroy() {
+        getApplicationContext().stopService(transferService);
+        Process.killProcess(Process.myPid());
+        super.onDestroy();
+    }
+
 
     void handleSendImage(Intent intent) {
         Uri imageUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
@@ -211,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
             }
             recyclerAdapter.setDataset(items);
             recyclerAdapter.notifyDataSetChanged();
-            // Update UI to reflect multiple images being shared
         }
     }
 
@@ -266,46 +294,5 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            Intent intent = new Intent(this, SettingsActivity.class);
-            startActivity(intent);
-            return true;
-        } else if (id == R.id.action_create_prefix) {
-            Intent intent = new Intent(this, CreatePrefixActivity.class);
-            startActivity(intent);
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
-    @Override
-    public void onBackPressed() {
-        finish();
-    }
-
-    @Override
-    protected void onDestroy() {
-        getApplicationContext().stopService(transferService);
-        Process.killProcess(Process.myPid());
-        super.onDestroy();
     }
 }

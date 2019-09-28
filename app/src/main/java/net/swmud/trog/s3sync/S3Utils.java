@@ -104,7 +104,7 @@ public class S3Utils {
         return folders;
     }
 
-    public static void upload(Context context, String source, String destinationPath) {
+    public static void upload(Context context, String source, String destinationPath, TransferListener listener) {
         AmazonS3Client cl = S3Utils.getClient();
         TransferUtility transferUtility =
                 TransferUtility.builder()
@@ -114,33 +114,13 @@ public class S3Utils {
                         .build();
 
         Log.d(TAG, source + " -> " + destinationPath);
-        TransferObserver uploadObserver = transferUtility.upload(destinationPath, new File(source));
+        if (destinationPath.startsWith("/")) {
+            destinationPath = destinationPath.substring(1);
+        }
+        TransferObserver uploadObserver = transferUtility.upload(bucketName, destinationPath, new File(source));
 
         // Attach a listener to the observer to get state update and progress notifications
-        uploadObserver.setTransferListener(new TransferListener() {
-
-            @Override
-            public void onStateChanged(int id, TransferState state) {
-                if (TransferState.COMPLETED == state) {
-                    // Handle a completed upload.
-                }
-            }
-
-            @Override
-            public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
-                float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
-                int percentDone = (int)percentDonef;
-
-                Log.d(TAG, "ID:" + id + " bytesCurrent: " + bytesCurrent
-                        + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
-            }
-
-            @Override
-            public void onError(int id, Exception ex) {
-                // Handle errors
-            }
-
-        });
+        uploadObserver.setTransferListener(listener);
 
         // If you prefer to poll for the data, instead of attaching a
         // listener, check for the state and progress in the observer.

@@ -10,7 +10,7 @@ import android.widget.TextView;
 import androidx.recyclerview.widget.RecyclerView;
 
 public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyViewHolder> {
-    private Uri[] mDataset;
+    private DataItem[] mDataset;
     private Resolver resolver;
 
     // Provide a reference to the views for each data item
@@ -25,6 +25,22 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
             textView = v.findViewById(R.id.my_text_view);
             progressBar = v.findViewById(R.id.progressBar);
         }
+    }
+
+    public static class DataItem {
+        public DataItem(Uri uri) {
+            this.uri = uri;
+        }
+
+        public Uri uri;
+        public ProgressBar progressBar;
+    }
+
+    public static DataItem[] getDummyDataSet() {
+        DataItem item = new DataItem(new Uri.Builder().appendPath("dummy1").build());
+        DataItem item2 = new DataItem(new Uri.Builder().appendPath("dummy2").build());
+
+        return new DataItem[] {item, item2};
     }
 
     public interface Resolver {
@@ -51,8 +67,9 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
     public void onBindViewHolder(MyViewHolder holder, int position) {
         // - get element from your dataset at this position
         // - replace the contents of the view with that element
-        holder.textView.setText(resolver.resolve(mDataset[position]));
-        holder.progressBar.setProgress(75);
+        holder.textView.setText(resolver.resolve(mDataset[position].uri));
+        holder.progressBar.setProgress(0);
+        mDataset[position].progressBar = holder.progressBar;
     }
 
     // Return the size of your dataset (invoked by the layout manager)
@@ -61,11 +78,11 @@ public class RecyclerAdapter extends RecyclerView.Adapter<RecyclerAdapter.MyView
         return mDataset == null ? 0 : mDataset.length;
     }
 
-    public void setDataset(Uri[] newSet) {
+    public void setDataset(DataItem[] newSet) {
         mDataset = newSet.clone();
     }
 
-    public Uri[] getDataset() {
+    public DataItem[] getDataset() {
         return mDataset;
     }
 }

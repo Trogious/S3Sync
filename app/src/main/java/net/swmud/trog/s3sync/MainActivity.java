@@ -3,7 +3,9 @@ package net.swmud.trog.s3sync;
 import android.Manifest;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.res.ColorStateList;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Process;
@@ -26,7 +28,9 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.amazonaws.mobile.client.AWSMobileClient;
 import com.amazonaws.mobile.client.Callback;
 import com.amazonaws.mobile.client.UserStateDetails;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferService;
+import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
@@ -78,7 +82,7 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(layoutManager);
         recyclerAdapter = new RecyclerAdapter(this::convertMediaUriToPath);
         recyclerView.setAdapter(recyclerAdapter);
-        recyclerAdapter.setDataset(new Uri[] {new Uri.Builder().appendPath("dummy1").build(), new Uri.Builder().appendPath("dummy2").build()});
+        recyclerAdapter.setDataset(RecyclerAdapter.getDummyDataSet());
         recyclerAdapter.notifyDataSetChanged();
 
         getApplicationContext().startService(transferService = new Intent(getApplicationContext(), TransferService.class));
@@ -137,13 +141,11 @@ public class MainActivity extends AppCompatActivity {
         String action = intent.getAction();
         String type = intent.getType();
 
-        if (Intent.ACTION_SEND.equals(action) && type != null) {
-            if (type.startsWith("image/") || type.startsWith("application/")) {
-                handleSendImage(intent); // Handle single image being sent
-            }
-        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
-            if (type.startsWith("image/")) {
-                handleSendMultipleImages(intent); // Handle multiple images being sent
+        if (type != null && (type.startsWith("image/") || type.startsWith("application/"))) {
+            if (Intent.ACTION_SEND.equals(action)) {
+                handleSendImage(intent);
+            } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
+                handleSendMultipleImages(intent);
             }
         }
 
@@ -183,7 +185,7 @@ public class MainActivity extends AppCompatActivity {
     void handleSendImage(Intent intent) {
         Uri imageUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
         if (imageUri != null) {
-            recyclerAdapter.setDataset(new Uri[] { imageUri } );
+            recyclerAdapter.setDataset(new RecyclerAdapter.DataItem[] { new RecyclerAdapter.DataItem(imageUri)} );
             recyclerAdapter.notifyDataSetChanged();
         }
     }
@@ -191,10 +193,10 @@ public class MainActivity extends AppCompatActivity {
     void handleSendMultipleImages(Intent intent) {
         ArrayList<Uri> imageUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
         if (imageUris != null) {
-            Uri []items = new Uri[imageUris.size()];
+            RecyclerAdapter.DataItem[]items = new RecyclerAdapter.DataItem[imageUris.size()];
             int i = 0;
             for (Uri uri: imageUris) {
-                items[i++] = uri;
+                items[i++] = new RecyclerAdapter.DataItem(uri);
             }
             recyclerAdapter.setDataset(items);
             recyclerAdapter.notifyDataSetChanged();
@@ -216,10 +218,42 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void uploadAll(String prefix) {
-        for (Uri uri : recyclerAdapter.getDataset()) {
-            String source = convertMediaUriToPath(uri);
+        for (final RecyclerAdapter.DataItem item : recyclerAdapter.getDataset()) {
+            String source = convertMediaUriToPath(item.uri);
             Path destinationPath = Paths.get(prefix, Paths.get(source).getFileName().toString());
-            S3Utils.upload(getApplicationContext(), source, destinationPath.toString());
+            if (item.progressBar != null) {
+                item.progressBar.setProgress(0);
+            }
+            S3Utils.upload(getApplicationContext(), source, destinationPath.toString(), new TransferListener() {
+                @Override
+                public void onStateChanged(int id, TransferState state) {
+                    if (TransferState.COMPLETED == state) {
+                        if (item.progressBar != null) {
+                            item.progressBar.setProgress(100);
+                            item.progressBar.setProgressTintList(ColorStateList.valueOf(Color.GREEN));
+                        }
+                    }
+                }
+
+                @Override
+                public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
+                    float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
+                    int percentDone = (int)percentDonef;
+
+                    if (item.progressBar != null) {
+                        item.progressBar.setProgress(percentDone);
+                    }
+                    Log.d(TAG, "ID:" + id + " bytesCurrent: " + bytesCurrent
+                            + " bytesTotal: " + bytesTotal + " " + percentDone + "%");
+                }
+
+                @Override
+                public void onError(int id, Exception ex) {
+                    if (item.progressBar != null) {
+                        item.progressBar.setProgressTintList(ColorStateList.valueOf(Color.RED));
+                    }
+                }
+            });
         }
     }
 
@@ -242,6 +276,8 @@ public class MainActivity extends AppCompatActivity {
         if (id == R.id.action_settings) {
             Intent intent = new Intent(this, SettingsActivity.class);
             startActivity(intent);
+            return true;
+        } else if (id == R.id.action_create_prefix) {
             return true;
         }
 

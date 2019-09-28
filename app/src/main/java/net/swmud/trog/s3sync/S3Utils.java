@@ -132,11 +132,16 @@ public class S3Utils {
         Log.d(TAG, "Bytes Total: " + uploadObserver.getBytesTotal());
     }
 
-    public static void createFolder(String fullPathName) {
+    public static void createPrefix(String fullPathName) {
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(0);
         PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName,fullPathName + "/",
                 new ByteArrayInputStream(new byte[0]), metadata);
-        client.putObject(putObjectRequest);
+        try {
+            client.putObject(putObjectRequest);
+        } catch (Exception e) {
+            Log.d(TAG, "Cannot create prefix: " + fullPathName, e);
+            throw e;
+        }
     }
 }

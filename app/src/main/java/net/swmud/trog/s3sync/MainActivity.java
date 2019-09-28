@@ -1,6 +1,7 @@
 package net.swmud.trog.s3sync;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.ColorStateList;
@@ -18,6 +19,7 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.app.ActivityCompat;
@@ -100,7 +102,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                     S3Utils.initialize(AWSMobileClient.getInstance().getConfiguration(), accessKeys);
                 } catch (JSONException e) {
-                    e.printStackTrace();
+                    Log.e(TAG, "JSON error.", e);
                 }
                 final SortedSet<String> folders = S3Utils.getFolders();
                 runOnUiThread(() -> {
@@ -179,6 +181,15 @@ public class MainActivity extends AppCompatActivity {
 
             // other 'case' lines to check for other
             // permissions this app might request.
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == Activity.RESULT_OK) {
+            foldersAdapter.add(data.getStringExtra("prefix"));
+            foldersAdapter.notifyDataSetChanged();
         }
     }
 
@@ -278,6 +289,8 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
             return true;
         } else if (id == R.id.action_create_prefix) {
+            Intent intent = new Intent(this, CreatePrefixActivity.class);
+            startActivity(intent);
             return true;
         }
 

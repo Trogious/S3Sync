@@ -56,7 +56,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        MySettings.initialize(getApplicationContext().getCacheDir().getAbsolutePath(), MySettings.getAndroidId(getApplicationContext()));
+        MySettings.initialize(getApplicationContext().getDataDir().getAbsolutePath(), MySettings.getAndroidId(getApplicationContext()));
         setContentView(R.layout.activity_main);
 
         Toolbar toolbar = findViewById(R.id.toolbar);

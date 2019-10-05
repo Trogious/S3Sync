@@ -26,16 +26,18 @@ public class MySettings {
     private static final String TAG = MySettings.class.getSimpleName();
     private static MySettings instance;
 
-    public static final String SETTINGS_FILE = "s3syncsettings";
-    public static final String ACCESS_KEY_FIELD = "access_key";
-    public static final String SECRET_KEY_FIELD = "secret_key";
-    public static final String LAST_PREFIX_KEY_FIELD = "last_prefix";
-    public static final String BUCKET_NAME_FIELD = "bucket_name";
+    private static final String SETTINGS_FILE = "s3syncsettings";
+    private static final String ACCESS_KEY_FIELD = "access_key";
+    private static final String SECRET_KEY_FIELD = "secret_key";
+    private static final String BUCKET_NAME_FIELD = "bucket_name";
+    private static final String REGION_FIELD = "region";
+    private static final String LAST_PREFIX_KEY_FIELD = "last_prefix";
 
     public String accessKey;
     public String secretKey;
-    public String lastSelectecPrefix;
     public String bucketName;
+    public String region;
+    public String lastSelectedPrefix;
 
     private String settingsDir;
     private String encryptionKey;
@@ -59,26 +61,36 @@ public class MySettings {
         return Settings.Secure.getString(context.getContentResolver(), Settings.Secure.ANDROID_ID);
     }
 
+    private String[] encryptAll(String ...values) {
+        String[] encrypted = new String[values.length];
+        for (int i = 0; i < values.length; i++) {
+            if (values[i] != null) {
+                try {
+                    encrypted[i] = Crypto.encrypt(encryptionKey, values[i]);
+                } catch (InvalidKeyException | NoSuchPaddingException | NoSuchAlgorithmException | UnsupportedEncodingException | BadPaddingException | IllegalBlockSizeException e) {
+                    Log.d(TAG, Log.getStackTraceString(e));
+                }
+            }
+        }
+
+        return encrypted;
+    }
+
     public void save() {
         Path path = Paths.get(settingsDir, SETTINGS_FILE);
-        String encrypted = null;
-        try {
-            encrypted = Crypto.encrypt(encryptionKey, secretKey);
-        } catch (InvalidKeyException | NoSuchPaddingException | NoSuchAlgorithmException | UnsupportedEncodingException | BadPaddingException | IllegalBlockSizeException e) {
-            Log.d(TAG, Log.getStackTraceString(e));
-        }
+        String[] encrypted = encryptAll(accessKey, secretKey, bucketName, region);
 
         JSONObject json = new JSONObject();
         try {
-            json.put(ACCESS_KEY_FIELD, accessKey);
-            json.put(SECRET_KEY_FIELD, encrypted);
-            json.put(LAST_PREFIX_KEY_FIELD, lastSelectecPrefix);
-            json.put(BUCKET_NAME_FIELD, bucketName);
+            json.put(ACCESS_KEY_FIELD, encrypted[0]);
+            json.put(SECRET_KEY_FIELD, encrypted[1]);
+            json.put(BUCKET_NAME_FIELD, encrypted[2]);
+            json.put(REGION_FIELD, encrypted[3]);
+            json.put(LAST_PREFIX_KEY_FIELD, lastSelectedPrefix);
         } catch (JSONException e) {
             Log.d(TAG, Log.getStackTraceString(e));
         }
         String payload = json.toString();
-        Log.d(TAG, payload);
         try {
             Files.write(path, payload.getBytes());
         } catch (IOException e) {
@@ -89,12 +101,12 @@ public class MySettings {
     public void load() {
         try {
             String jsonStr = new String(Files.readAllBytes(Paths.get(settingsDir, SETTINGS_FILE)));
-            Log.d(TAG, jsonStr);
             JSONObject json = new JSONObject(jsonStr);
-            accessKey = json.getString(ACCESS_KEY_FIELD);
+            accessKey = Crypto.decrypt(encryptionKey, json.getString(ACCESS_KEY_FIELD));
             secretKey = Crypto.decrypt(encryptionKey, json.getString(SECRET_KEY_FIELD));
-            lastSelectecPrefix = json.optString(LAST_PREFIX_KEY_FIELD, null);
-            bucketName = json.optString(BUCKET_NAME_FIELD, null);
+            bucketName = Crypto.decrypt(encryptionKey, json.getString(BUCKET_NAME_FIELD));
+            region = Crypto.decrypt(encryptionKey, json.getString(REGION_FIELD));
+            lastSelectedPrefix = json.optString(LAST_PREFIX_KEY_FIELD, null);
         } catch (IOException | JSONException | NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException | BadPaddingException | IllegalBlockSizeException e) {
             Log.d(TAG, Log.getStackTraceString(e));
         }
@@ -113,13 +125,18 @@ public class MySettings {
         save();
     }
 
-    public void updateLastSelectecPrefix(String lastSelectecPrefix) {
-        this.lastSelectecPrefix = lastSelectecPrefix;
+    public void updateBucketName(String bucketName) {
+        this.bucketName = bucketName;
         save();
     }
 
-    public void updateBucketName(String bucketName) {
-        this.bucketName = bucketName;
+    public void updateRegion(String region) {
+        this.region = region;
+        save();
+    }
+
+    public void updateLastSelectedPrefix(String lastSelectecPrefix) {
+        this.lastSelectedPrefix = lastSelectecPrefix;
         save();
     }
 }

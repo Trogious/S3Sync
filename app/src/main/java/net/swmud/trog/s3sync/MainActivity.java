@@ -47,6 +47,7 @@ import java.util.SortedSet;
 
 public class MainActivity extends AppCompatActivity {
     private static final String TAG = MainActivity.class.getSimpleName();
+    private static final int PERM_ID_EXT_STORAGE = 1;
     private final MainActivity self = this;
     private RecyclerAdapter recyclerAdapter;
     private Intent transferService;
@@ -68,13 +69,11 @@ public class MainActivity extends AppCompatActivity {
                     == PackageManager.PERMISSION_GRANTED) {
                 Log.d(TAG, "READ_EXTERNAL_STORAGE already granted");
                 Snackbar.make(view, "Uploading", Snackbar.LENGTH_LONG).show();
-                String prefix = (String)folderSpinner.getSelectedItem();
+                String prefix = (String) folderSpinner.getSelectedItem();
                 uploadAll(prefix);
             } else {
                 Snackbar.make(view, "No Permission, requesting. Accept and re-try.", Snackbar.LENGTH_LONG).show();
-                ActivityCompat.requestPermissions(this,
-                        new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
-                        1);
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, PERM_ID_EXT_STORAGE);
             }
         });
 
@@ -112,8 +111,8 @@ public class MainActivity extends AppCompatActivity {
                     foldersAdapter.addAll(folders);
                     foldersAdapter.notifyDataSetChanged();
 
-                    if (s.lastSelectecPrefix != null) {
-                        int found = foldersAdapter.getPosition(s.lastSelectecPrefix);
+                    if (s.lastSelectedPrefix != null) {
+                        int found = foldersAdapter.getPosition(s.lastSelectedPrefix);
                         if (found >= 0 && found < foldersAdapter.getCount()) {
                             folderSpinner.setSelection(found);
                         }
@@ -121,7 +120,7 @@ public class MainActivity extends AppCompatActivity {
                     folderSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                         @Override
                         public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                            s.updateLastSelectecPrefix(foldersAdapter.getItem(position));
+                            s.updateLastSelectedPrefix(foldersAdapter.getItem(position));
                         }
 
                         @Override
@@ -161,16 +160,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        switch (requestCode) {
-            case 1: {
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0
-                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.d(TAG, "READ_EXTERNAL_STORAGE granted");
-                } else {
-                    Log.d(TAG, "READ_EXTERNAL_STORAGE rejected !!!");
-                }
-                return;
+        if (requestCode == PERM_ID_EXT_STORAGE) {
+            // If request is cancelled, the result arrays are empty.
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "READ_EXTERNAL_STORAGE granted");
+            } else {
+                Log.d(TAG, "READ_EXTERNAL_STORAGE rejected !!!");
             }
 
             // other 'case' lines to check for other
@@ -225,7 +220,7 @@ public class MainActivity extends AppCompatActivity {
     void handleSendImage(Intent intent) {
         Uri imageUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
         if (imageUri != null) {
-            recyclerAdapter.setDataset(new RecyclerAdapter.DataItem[] { new RecyclerAdapter.DataItem(imageUri)} );
+            recyclerAdapter.setDataset(new RecyclerAdapter.DataItem[]{new RecyclerAdapter.DataItem(imageUri)});
             recyclerAdapter.notifyDataSetChanged();
         }
     }
@@ -233,9 +228,9 @@ public class MainActivity extends AppCompatActivity {
     void handleSendMultipleImages(Intent intent) {
         ArrayList<Uri> imageUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
         if (imageUris != null) {
-            RecyclerAdapter.DataItem[]items = new RecyclerAdapter.DataItem[imageUris.size()];
+            RecyclerAdapter.DataItem[] items = new RecyclerAdapter.DataItem[imageUris.size()];
             int i = 0;
-            for (Uri uri: imageUris) {
+            for (Uri uri : imageUris) {
                 items[i++] = new RecyclerAdapter.DataItem(uri);
             }
             recyclerAdapter.setDataset(items);
@@ -244,8 +239,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public String convertMediaUriToPath(Uri uri) {
-        String [] proj = {MediaStore.Images.Media.DATA};
-        Cursor cursor = getContentResolver().query(uri, proj,  null, null, null);
+        String[] proj = {MediaStore.Images.Media.DATA};
+        Cursor cursor = getContentResolver().query(uri, proj, null, null, null);
         if (cursor != null) {
             int column_index = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA);
             cursor.moveToFirst();
@@ -277,7 +272,7 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void onProgressChanged(int id, long bytesCurrent, long bytesTotal) {
                     float percentDonef = ((float) bytesCurrent / (float) bytesTotal) * 100;
-                    int percentDone = (int)percentDonef;
+                    int percentDone = (int) percentDonef;
 
                     if (item.progressBar != null) {
                         item.progressBar.setProgress(percentDone);

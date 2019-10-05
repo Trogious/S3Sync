@@ -41,6 +41,10 @@ public class S3Utils {
         S3Utils.bucketName = bucketName;
     }
 
+    public static void setRegionName(String regionName) {
+        S3Utils.regionName = regionName;
+    }
+
     public static void setAccessKey(String accessKey) {
         S3Utils.accessKey = accessKey;
     }
@@ -66,7 +70,7 @@ public class S3Utils {
     public static void initialize(AWSConfiguration awsConfig, List<String> keys) throws JSONException {
         JSONObject service = awsConfig.optJsonObject("S3TransferUtility");
         bucketName = MySettings.getInstance().bucketName;
-        regionName = service.getString("Region");
+        regionName = MySettings.getInstance().region;
         client = getClient();
         accessKey = keys.get(0);
         secretKey = keys.get(1);

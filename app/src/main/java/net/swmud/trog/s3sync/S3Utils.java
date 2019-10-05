@@ -4,7 +4,6 @@ import android.content.Context;
 import android.util.Log;
 
 import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.mobile.client.AWSMobileClient;
 import com.amazonaws.mobile.config.AWSConfiguration;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferListener;
 import com.amazonaws.mobileconnectors.s3.transferutility.TransferObserver;
@@ -33,9 +32,10 @@ public class S3Utils {
     private static final String TAG = S3Utils.class.getSimpleName();
     private static String bucketName;
     private static String regionName;
-    private static AmazonS3Client client;
     private static String accessKey;
     private static String secretKey;
+    private static AmazonS3Client client;
+    private static AWSConfiguration awsConfig;
 
     public static void setBucketName(String bucketName) {
         S3Utils.bucketName = bucketName;
@@ -67,31 +67,50 @@ public class S3Utils {
         }, Region.getRegion(regionName));
     }
 
-    public static void initialize(AWSConfiguration awsConfig, List<String> keys) throws JSONException {
-        JSONObject service = awsConfig.optJsonObject("S3TransferUtility");
-        bucketName = MySettings.getInstance().bucketName;
-        regionName = MySettings.getInstance().region;
+    private static AWSConfiguration buildAwsConfig() {
+        AWSConfiguration awsConfiguration = null;
+        JSONObject cfg = new JSONObject();
+        try {
+            cfg.put("Bucket", bucketName);
+            cfg.put("Region", regionName);
+            JSONObject defaultCfg = new JSONObject();
+            defaultCfg.put("Default", cfg);
+            JSONObject config = new JSONObject();
+            config.put("S3TransferUtility", defaultCfg);
+            awsConfiguration = new AWSConfiguration(config);
+        } catch (JSONException e) {
+            Log.d(TAG, Log.getStackTraceString(e));
+        }
+
+        return awsConfiguration;
+    }
+
+    public static void initialize() {
+        MySettings s = MySettings.getInstance();
+        bucketName = s.bucketName;
+        regionName = s.region;
+        accessKey = s.accessKey;
+        secretKey = s.secretKey;
         client = getClient();
-        accessKey = keys.get(0);
-        secretKey = keys.get(1);
+        awsConfig = buildAwsConfig();
     }
 
     public static List<String> listObjects() {
         final List<String> objects = new ArrayList<>();
         if (bucketName != null) {
-            try {
-                Thread t = new Thread(() -> {
+            Thread t = new Thread(() -> {
+                try {
                     List<S3ObjectSummary> summaries = client.listObjects(bucketName).getObjectSummaries();
                     summaries.sort((o1, o2) -> o1.getLastModified().compareTo(o2.getLastModified()));
                     summaries.forEach(s3ObjectSummary -> objects.add(s3ObjectSummary.getKey()));
-                });
-                t.start();
-                try {
-                    t.join();
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                     Log.d(TAG, Log.getStackTraceString(e));
                 }
-            } catch (Exception e) {
+            });
+            t.start();
+            try {
+                t.join();
+            } catch (InterruptedException e) {
                 Log.d(TAG, Log.getStackTraceString(e));
             }
         }
@@ -125,7 +144,7 @@ public class S3Utils {
         TransferUtility transferUtility =
                 TransferUtility.builder()
                         .context(context)
-                        .awsConfiguration(AWSMobileClient.getInstance().getConfiguration())
+                        .awsConfiguration(awsConfig)
                         .s3Client(cl)
                         .build();
 
@@ -151,7 +170,7 @@ public class S3Utils {
     public static void createPrefix(String fullPathName) {
         ObjectMetadata metadata = new ObjectMetadata();
         metadata.setContentLength(0);
-        PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName,fullPathName + "/",
+        PutObjectRequest putObjectRequest = new PutObjectRequest(bucketName, fullPathName + "/",
                 new ByteArrayInputStream(new byte[0]), metadata);
         client.putObject(putObjectRequest);
     }

@@ -36,8 +36,6 @@ import com.amazonaws.mobileconnectors.s3.transferutility.TransferState;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.snackbar.Snackbar;
 
-import org.json.JSONException;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
@@ -94,15 +92,11 @@ public class MainActivity extends AppCompatActivity {
             public void onResult(UserStateDetails userStateDetails) {
                 Log.d(TAG, "AWSMobileClient initialized. User State is " + userStateDetails.getUserState());
                 final MySettings s = MySettings.getInstance();
-                try {
-                    List<String> accessKeys = s.getAccessKeys();
-                    if (accessKeys.get(0) == null || accessKeys.get(1) == null) {
-                        return;
-                    }
-                    S3Utils.initialize(AWSMobileClient.getInstance().getConfiguration(), accessKeys);
-                } catch (JSONException e) {
-                    Log.e(TAG, "JSON error.", e);
+                List<String> accessKeys = s.getAccessKeys();
+                if (accessKeys.get(0) == null || accessKeys.get(1) == null) {
+                    return;
                 }
+                S3Utils.initialize();
                 final SortedSet<String> folders = S3Utils.getFolders();
                 runOnUiThread(() -> {
                     folderSpinner.setOnItemSelectedListener(null);
@@ -176,8 +170,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == Activity.RESULT_OK) {
-            foldersAdapter.add(data.getStringExtra("prefix"));
+        if (resultCode == Activity.RESULT_OK && data != null) {
+            String prefix = data.getStringExtra("prefix");
+            if (!prefix.endsWith("/")) {
+                prefix += "/";
+            }
+            foldersAdapter.add(prefix);
             foldersAdapter.notifyDataSetChanged();
         }
     }
